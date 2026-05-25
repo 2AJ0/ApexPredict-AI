@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApexPredict AI Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen">
+  <main class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-2">ApexPredict AI</h1>
+    <p class="text-slate-300 mb-8">Live F1 pit strategy recommendations to shave off milliseconds.</p>
+
+    <section class="grid gap-6 md:grid-cols-2">
+      <form id="telemetry-form" class="bg-slate-900 p-5 rounded-xl border border-slate-700">
+        <h2 class="text-xl font-semibold mb-4">Mock Telemetry Input</h2>
+        <label class="block mb-3">
+          <span class="text-sm text-slate-300">Tire wear (%)</span>
+          <input id="tire_wear" type="number" min="0" max="100" step="0.1" value="52"
+            class="mt-1 w-full bg-slate-800 border border-slate-600 rounded px-3 py-2" />
+        </label>
+        <label class="block mb-3">
+          <span class="text-sm text-slate-300">Lap time (ms)</span>
+          <input id="lap_time_ms" type="number" min="1" value="92850"
+            class="mt-1 w-full bg-slate-800 border border-slate-600 rounded px-3 py-2" />
+        </label>
+        <label class="block mb-4">
+          <span class="text-sm text-slate-300">Weather status</span>
+          <input id="weather_status" type="text" value="clear"
+            class="mt-1 w-full bg-slate-800 border border-slate-600 rounded px-3 py-2" />
+        </label>
+        <button type="submit" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold py-2 rounded">
+          Send Telemetry
+        </button>
+      </form>
+
+      <div class="bg-slate-900 p-5 rounded-xl border border-slate-700">
+        <h2 class="text-xl font-semibold mb-4">Live Recommendation</h2>
+        <p id="recommendation" class="text-cyan-200 leading-relaxed mb-4">
+          No telemetry yet. Submit a packet to start recommendations.
+        </p>
+        <pre id="latest" class="text-xs bg-slate-950 p-3 rounded border border-slate-700 overflow-auto"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('telemetry-form');
+    const recommendationBox = document.getElementById('recommendation');
+    const latestBox = document.getElementById('latest');
+
+    async function refreshRecommendation() {
+      const res = await fetch('/recommendation');
+      const data = await res.json();
+      recommendationBox.textContent = data.recommendation;
+      latestBox.textContent = JSON.stringify(data.latest_telemetry, null, 2);
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await fetch('/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tire_wear: Number(document.getElementById('tire_wear').value),
+          lap_time_ms: Number(document.getElementById('lap_time_ms').value),
+          weather_status: document.getElementById('weather_status').value
+        })
+      });
+      await refreshRecommendation();
+    });
+
+    refreshRecommendation();
+    setInterval(refreshRecommendation, 5000);
+  </script>
+</body>
+</html>
